@@ -1,0 +1,24 @@
+---
+# Dev values for spring-boot-api.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+environment: "dev"
+
+replicaCount: 3
+
+args:
+  - "--spring.profiles.active=dev"
+
+ingress:
+  hosts:
+    - host: spring-boot.dev.local
+      paths:
+        - path: /api
+          pathType: Prefix
+          port: 8080
+        - path: /logs
+          pathType: Prefix
+          port: 8081
+        - path: /soap
+          pathType: Prefix
+          port: 8082
