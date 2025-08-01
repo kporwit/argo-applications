@@ -1,0 +1,26 @@
+{{- range $repositoryName, $repositoryData:= .Values.repositories }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  {{- with $repositoryData.additionalAnnotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
+  {{- with $repositoryData.additionalLabels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  name: {{ $repositoryName }}
+  {{- with $repositoryData.namespace | default "argocd" }}
+  namespace: {{ . }}
+  {{- end }}
+type: {{ $repositoryData.secretType | default "opaque" }}
+data:
+  type: {{ $repositoryData.data.type | default "git" | b64enc | quote }}
+  name: {{ $repositoryData.data.name | default $repositoryName | b64enc | quote }}
+  url: {{ $repositoryData.data.url | b64enc | quote }}
+  project: {{ $repositoryData.data.project | b64enc | quote }}
+{{- end }}

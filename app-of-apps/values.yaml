@@ -1,0 +1,71 @@
+---
+# This will create repository secrets. Parth with access (SSH key, Auth) should be created with credential templates.
+repositories:
+  spring-boot-api-repository:
+    data:
+      url: https://github.com/kporwit/argo-applications
+      project: spring-boot-api-project
+      namespace: argocd
+# This will create rest of the resources which are documented at https://artifacthub.io/packages/helm/argo/argocd-apps
+argocd-apps:
+  projects:
+    spring-boot-api-project:
+      namespace: argocd
+      description: "spring-boot-api-project"
+      sourceRepos:
+        - 'https://kporwit.github.io/helm-charts/'
+        - 'https://github.com/kporwit/argo-applications'
+      destinations:
+        - namespace: spring-boot-api-dev
+          server: <dev-global-cluster-0 API server endpoint> # TODO
+        - namespace: spring-boot-api-prod
+          server: <prd-global-cluster-5 API server endpoint> # TODO
+      orphanedResources: {}
+      roles:
+        - name: spring-boot-api-dev-role
+          description: "Role for spring-boot-api applications"
+          policies:
+            - p, proj:spring-boot-api-project:spring-boot-api-dev-role, applications, get, spring-boot-api-project/*, allow
+            - p, proj:spring-boot-api-project:spring-boot-api-dev-role, applications, sync, spring-boot-api-project/*, allow
+            - p, proj:spring-boot-api-project:spring-boot-api-dev-role, logs, get, spring-boot-api-project/*, allow
+          groups:
+            - "<id of the SSO group with access>"
+  applicationsets:
+    spring-boot-api:
+      namespace: argocd
+      generators:
+        - list:
+            elements:
+              - cluster: dev-global-cluster-0
+                server: <dev-global-cluster-0 API server endpoint> # TODO
+                env: "dev"
+              - cluster: prd-global-cluster-5
+                server: <dev-global-cluster-0 API server endpoint> # TODO
+                env: "prod"
+      template:
+        metadata:
+          name: 'spring-boot-api-{{.env}}'
+          labels:
+            project: 'spring-boot-api'
+            environment: '{{.env}}'
+        spec:
+          project: spring-boot-api-project
+          sources:
+            - repoURL: https://kporwit.github.io/helm-charts/
+              chart: spring-boot-api
+              targetRevision: 0.1.0
+              helm:
+                valueFiles:
+                  - '$values/spring-boot-values/values.{{.env}}.yaml'
+            - repoURL: https://github.com/kporwit/argo-applications
+              targetRevision: main
+              ref: values
+          destination:
+            server: '{{.server}}'
+            namespace: 'spring-boot-api-{{.env}}'
+          syncPolicy:
+            automated:
+              prune: true
+              selfHeal: true
+            syncOptions:
+              - CreateNamespace=true

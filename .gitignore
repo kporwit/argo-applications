@@ -1,0 +1,6 @@
+.project
+.idea
+charts
+
+output/
+templates/*.rendered.yaml
